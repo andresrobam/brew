@@ -17,7 +17,9 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Install python requirements
-        run: pip3 install -r requirements.txt
+        run: |
+          cd ${{ github.workspace }}/server
+          pip3 install -r requirements.txt
 
       - name: Build docker image
         run: |
