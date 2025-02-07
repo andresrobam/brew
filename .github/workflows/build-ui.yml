@@ -1,6 +1,6 @@
 name: Build UI
 env:
-  IMAGE: ghcr.io/brew-ui:latest
+  IMAGE: ghcr.io/${{ github.repository }}/ui:latest
 on:
   workflow_dispatch
 jobs:
