@@ -1,0 +1,24 @@
+name: Build
+env:
+  IMAGE: brew-ui:latest
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Log in to docker registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build static files for UI
+        run:
+          - cd ui
+          - bun run build
+      - name: Build docker image
+        run:
+          - cd ../docker
+          - docker build . --tag $IMAGE
+      - name: Push docker image
+        run: docker push $IMAGE

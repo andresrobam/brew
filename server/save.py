@@ -1,0 +1,1 @@
+{"initial_setpoint": 65.0, "fan_power": 100, "boil_threshold": 99.766, "boil_pwoer": 50.0, "k_p": 1.0, "k_i": 1.0, "k_d": 1.0}
