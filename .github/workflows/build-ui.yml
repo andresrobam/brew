@@ -1,8 +1,7 @@
 name: Build UI
 env:
   IMAGE: ghcr.io/${{ github.repository }}/ui:latest
-on:
-  workflow_dispatch
+on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -11,11 +10,15 @@ jobs:
       contents: read
     steps:
       - name: Log in to docker registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout the repository
         uses: actions/checkout@v4
-        
+
       - name: Set up bun
         uses: oven-sh/setup-bun@v2
 
@@ -25,10 +28,16 @@ jobs:
           bun install
           bun run build
 
-      - name: Build docker image
-        run: |
-          cd ${{ github.workspace }}/ui
-          docker buildx build --platform linux/amd64,linux/arm64 . --tag $IMAGE
-      
-      - name: Push docker image
-        run: docker push $IMAGE
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: "{{defaultContext}}:ui"
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}
