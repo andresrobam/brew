@@ -22,6 +22,7 @@ jobs:
       - name: Build static files for UI
         run: |
           cd ${{ github.workspace }}/ui
+          bun install
           bun run build
 
       - name: Build docker image
