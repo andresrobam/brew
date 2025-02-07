@@ -186,7 +186,7 @@ def get_status():
         response["boilAchieved"] = boil_achieved
         if not tuner is None:
             response["autotunePeakCount"] = tuner.peak_count
-        return json.dumps(response)
+        return json.dumps(response), 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/setpoint", methods = ["PUT"])
 def put_setpoint():
@@ -195,14 +195,14 @@ def put_setpoint():
         global alarm_armed
         setpoint = float(request.args.get("setpoint"))
         alarm_armed = True
-    return "Success", 200
+    return "Success", 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/duty-cycle", methods = ["PUT"])
 def put_duty_cycle():
     with lock:
         global duty_cycle
         duty_cycle = float(request.args.get("dutyCycle"))
-    return "Success", 200
+    return "Success", 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/mode", methods = ["PUT"])
 def put_mode():
@@ -213,13 +213,13 @@ def put_mode():
             selected_tuning_mode = new_tuning_mode
             print(f"Selected tuning mode: {selected_tuning_mode}")
         set_mode(request.args.get("mode"))
-    return "Success", 200
+    return "Success", 200, {'Content-Type': 'application/json'}
     
 @app.route(base_url+"/pump", methods = ["PUT"])
 def put_pump():
     with lock:
         set_pump_status(request.args.get("pump").lower() == "true")
-    return "Success", 200
+    return "Success", 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/settings/pid", methods = ["GET"])
 def get_pid_settings():
@@ -228,7 +228,7 @@ def get_pid_settings():
         response["p"] = k_p
         response["i"] = k_i
         response["d"] = k_d
-        return json.dumps(response)
+        return json.dumps(response), 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/settings/pid", methods = ["PUT"])
 def put_pid_settings():
@@ -241,7 +241,7 @@ def put_pid_settings():
         k_d = float(request.args.get("d"))
         save_settings()
         reset_pid()
-    return "Success", 200
+    return "Success", 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/settings/boil", methods = ["GET"])
 def get_temperature_settings():
@@ -249,7 +249,7 @@ def get_temperature_settings():
         response = {}
         response["boilThreshold"] = boil_threshold
         response["boilPower"] = boil_power
-        return json.dumps(response)
+        return json.dumps(response), 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/settings/boil", methods = ["PUT"])
 def put_temperature_settings():
@@ -261,7 +261,7 @@ def put_temperature_settings():
         save_settings()
         if mode == "boil":
             set_mode("boil")
-    return "Success", 200
+    return "Success", 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/settings/other", methods = ["GET"])
 def get_other_settings():
@@ -269,7 +269,7 @@ def get_other_settings():
         response = {}
         response["initialSetpoint"] = initial_setpoint
         response["fanPower"] = fan_power
-        return json.dumps(response)
+        return json.dumps(response), 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/settings/other", methods = ["PUT"])
 def put_other_settings():
@@ -280,7 +280,7 @@ def put_other_settings():
         fan_power = float(request.args.get("fanPower"))
         set_fan_power()
         save_settings()
-    return "Success", 200
+    return "Success", 200, {'Content-Type': 'application/json'}
         
 @app.route(base_url+"/messages", methods = ["GET"])
 def get_messages():
@@ -289,7 +289,11 @@ def get_messages():
         response = []
         response += messages
         messages = []
-        return response
+        return response, 200, {'Content-Type': 'application/json'}
+
+@app.route(base_url+"/health", methods = ["GET"])
+def health():
+    return "{\"status\": \"up\"}", 200, {'Content-Type': 'application/json'}
 
 def save_chart_data():
     timestamps.append(get_current_timestamp())
@@ -388,4 +392,4 @@ scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
 app.config["APPLICATION_ROOT"] = "/api"
-app.run(threading = True)
+app.run(threaded = True, host="0.0.0.0")
