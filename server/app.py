@@ -1,4 +1,4 @@
-
+import traceback
 import json
 import datetime
 import atexit
@@ -57,32 +57,35 @@ def load_settings():
     global k_i
     global k_d
     try:
-        with open('save.json', 'r') as file:
+        with open('config/config.json', 'r') as file:
             settings = json.load(file)    
             initial_setpoint = settings["initial_setpoint"]
             fan_power = settings["fan_power"]
-            set_fan_power()
             setpoint = initial_setpoint
             boil_threshold = settings["boil_threshold"]
             boil_power = settings["boil_power"]
             k_p = settings["k_p"]
             k_i = settings["k_i"]
             k_d = settings["k_d"]
+        print("Initialized settings from config.json!")
     except Exception:
-        set_fan_power()
+        print("Failed initializing setting from config.json, using defaults!")
+        print(traceback.format_exc())
         pass
+    set_fan_power()
 
 def save_settings():
     settings = {}
     settings["initial_setpoint"] = initial_setpoint
     settings["fan_power"] = fan_power
     settings["boil_threshold"] = boil_threshold
-    settings["boil_pwoer"] = boil_power
+    settings["boil_power"] = boil_power
     settings["k_p"] = k_p
     settings["k_i"] = k_i
     settings["k_d"] = k_d
-    with open('save.py', 'w') as file:
+    with open('config/config.json', 'w+') as file:
         file.write(json.dumps(settings))
+    print("Wrote to config.json!")
 
 def initialize_pid():
     global pid

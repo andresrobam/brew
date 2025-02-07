@@ -1,11 +1,11 @@
 services:
   ui:
-    image: ghcr.io/andresrobam/brew/ui:latest
+    build: ui
     ports:
       - "80:80"
     restart: unless-stopped
   server:
-    image: ghcr.io/andresrobam/brew/server:latest
+    build: server
     privileged: true
     volumes:
       - ./server/config:/app/config
