@@ -19,7 +19,7 @@ jobs:
       - name: Build docker image
         run: |
           cd ${{ github.workspace }}/server
-          docker build . --tag $IMAGE
+          docker buildx build --platform linux/amd64,linux/arm64 . --tag $IMAGE
       
       - name: Push docker image
         run: docker push $IMAGE
