@@ -1,4 +1,4 @@
-name: Build
+name: Build UI
 env:
   IMAGE: brew-ui:latest
 on:
@@ -27,7 +27,7 @@ jobs:
 
       - name: Build docker image
         run: |
-          cd ${{ github.workspace }}/docker
+          cd ${{ github.workspace }}/ui
           docker build . --tag $IMAGE
       
       - name: Push docker image
