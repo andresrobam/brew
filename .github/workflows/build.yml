@@ -13,13 +13,12 @@ jobs:
       - name: Log in to docker registry
       - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build static files for UI
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - uses: actions/checkout@v4
+        uses: oven-sh/setup-bun@v2
+        uses: actions/checkout@v4
       - run: cd ui
       - run: bun run build
       - name: Build docker image
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
       - run: cd ../docker
       - run: docker build . --tag $IMAGE
       - name: Push docker image
