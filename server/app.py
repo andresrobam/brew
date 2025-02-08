@@ -9,6 +9,23 @@ from flask_cors import CORS
 from pid import PID
 from autotune import PIDAutotune
 from apscheduler.schedulers.background import BackgroundScheduler
+from logging.config import dictConfig
+
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 
 mode = "off"
 pump = False
@@ -20,6 +37,7 @@ fan_power = 100
 setpoint = initial_setpoint
 boil_threshold = 99.7
 boil_power = 50.0
+previous_duty_cycle = 0.0
 duty_cycle = 0.0
 
 timestamps = []
@@ -67,10 +85,10 @@ def load_settings():
             k_p = settings["k_p"]
             k_i = settings["k_i"]
             k_d = settings["k_d"]
-        print("Initialized settings from config.json!")
+        app.logger.info("Initialized settings from config.json!")
     except Exception:
-        print("Failed initializing setting from config.json, using defaults!")
-        print(traceback.format_exc())
+        app.logger.error("Failed initializing setting from config.json, using defaults!")
+        app.logger.error(traceback.format_exc())
         pass
     set_fan_power()
 
@@ -85,7 +103,7 @@ def save_settings():
     settings["k_d"] = k_d
     with open('config/config.json', 'w+') as file:
         file.write(json.dumps(settings))
-    print("Wrote to config.json!")
+    app.logger.info("Wrote to config.json!")
 
 def initialize_pid():
     global pid
@@ -95,7 +113,7 @@ def reset_pid():
     global pid
     if pid is None:
         return
-    print("Resetting PID")
+    app.logger.info("Resetting PID")
     initialize_pid()
 
 def get_current_timestamp():
@@ -106,23 +124,23 @@ def set_pump_status(status):
     global pump
     pump = status
     if status: 
-        print("Pump turned ON")
+        app.logger.info("Pump turned ON")
     else:
-        print("Pump turned OFF")
+        app.logger.info("Pump turned OFF")
     # TODO: set pump relay pin status
 
 def set_pid_status(status):
     global pid
     if status:
         initialize_pid()
-        print("PID turned ON")
+        app.logger.info("PID turned ON")
     else:
         pid = None
-        print("PID turned OFF")
+        app.logger.info("PID turned OFF")
 
 def buzz():
     # TODO: trigger buzzer via PWM somehow
-    print("BUZZ")
+    app.logger.info("BUZZ")
 
 def handle_boil():
     global duty_cycle
@@ -138,7 +156,7 @@ def handle_boil():
         duty_cycle = boil_power
 
 def set_mode(new_mode):
-    print(f"Mode set to: {new_mode}")
+    app.logger.info(f"Mode set to: {new_mode}")
     global mode
     global duty_cycle
     global alarm_armed
@@ -214,7 +232,7 @@ def put_mode():
         if not new_tuning_mode is None:
             global selected_tuning_mode
             selected_tuning_mode = new_tuning_mode
-            print(f"Selected tuning mode: {selected_tuning_mode}")
+            app.logger.info(f"Selected tuning mode: {selected_tuning_mode}")
         set_mode(request.args.get("mode"))
     return "Success", 200, {'Content-Type': 'application/json'}
     
@@ -314,7 +332,6 @@ def handle_pid():
     if pid is None:
         return
     global duty_cycle
-    print("Running PID loop")
     duty_cycle = pid.calc(temperature, setpoint)
 
 def handle_autotune():
@@ -338,10 +355,10 @@ def handle_autotune():
             
             for tuning_mode in tuner.tuning_rules:
                 params = tuner.get_pid_parameters(tuning_mode)
-                print("Tuning mode: {tuning_mode}")
-                print("Kp: {params.Kp}")
-                print("Ki: {params.Ki}")
-                print("Kd: {params.Kd}")
+                app.logger.info("Tuning mode: {tuning_mode}")
+                app.logger.info("Kp: {params.Kp}")
+                app.logger.info("Ki: {params.Ki}")
+                app.logger.info("Kd: {params.Kd}")
 
                 if tuning_mode == selected_tuning_mode:
                     k_p = params.Kp
@@ -353,20 +370,24 @@ def handle_autotune():
         if tuner.state == PIDAutotune.STATE_FAILED:
             message = dict(text="Autotune failed", style="error")
         if not message is None:
-            print(message["text"])
+            app.logger.info(message["text"])
             messages.append(message)
 
 def get_temperature():
     # TODO: temperature = read from pins
-    print("Reading temperature")
+    pass
 
 def set_heater_pwm():
     # TODO: set duty cycle to pwm pin
-    print(f"Setting heater duty cycle to {duty_cycle}")
+    global previous_duty_cycle
+    if previous_duty_cycle == duty_cycle:
+        return
+    previous_duty_cycle = duty_cycle
+    app.logger.info(f"Setting heater duty cycle to {duty_cycle}")
 
 def set_fan_power():
     # TODO: set duty cycle to fan pin
-    print(f"Setting fan power to {fan_power}")
+    app.logger.info(f"Setting fan power to {fan_power}")
 
 def handle_alarm():
     global alarm_armed
@@ -395,4 +416,6 @@ scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
 app.config["APPLICATION_ROOT"] = "/api"
-app.run(threaded = True, host="0.0.0.0")
+
+if __name__ == '__main__':
+    app.run(threaded = True, host="0.0.0.0")
