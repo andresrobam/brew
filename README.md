@@ -5,6 +5,8 @@ Written for and tested on a Raspberry Pi 4B running DietPi 9.9, but might work o
 Requires docker and docker compose to be installed.
 Runs on http://localhost:80. Port can be changed in the `docker-compose` file.
 
+PID logic copied from [hirschmann/pid-autotune](https://github.com/hirschmann/pid-autotune).
+
 ## GPIO pins
 
 - GPIO04 - Data channel of a DS18B20 temperature sensor
@@ -41,7 +43,7 @@ sudo modprobe w1-therm
 
 Configure DS18B20 if not alread configured (see previous section).\
 Log in to your Pi and navigate to the directory you want to save the application to.\
-Download `docker-compose.yml` file:
+Download the `docker-compose.yml` file:
 
 ```
 wget https://raw.githubusercontent.com/andresrobam/brew/refs/heads/master/docker-compose.yml
