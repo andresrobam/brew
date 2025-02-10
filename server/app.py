@@ -1,3 +1,4 @@
+from math import floor
 import traceback
 import json
 import datetime
@@ -10,6 +11,7 @@ from pid import PID
 from autotune import PIDAutotune
 from apscheduler.schedulers.background import BackgroundScheduler
 from logging.config import dictConfig
+from datetime import datetime, timezone
 
 dictConfig({
     'version': 1,
@@ -117,8 +119,7 @@ def reset_pid():
     initialize_pid()
 
 def get_current_timestamp():
-    #return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+    return floor((datetime.now(timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds() * 1000)
 
 def set_pump_status(status):
     global pump
@@ -319,7 +320,10 @@ def health():
 def save_chart_data():
     timestamps.append(get_current_timestamp())
     temperature_history.append(temperature)
-    setpoint_history.append(setpoint)
+    if (pid is None):
+        setpoint_history.append(None)
+    else:
+        setpoint_history.append(setpoint)
     duty_cycle_history.append(duty_cycle)
 
     if len(timestamps) > 3600:

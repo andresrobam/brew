@@ -34,7 +34,8 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"chartjs": "^0.3.24",
-		"svelte-chartjs": "^3.1.5"
+		"chart.js": "^4.4.7",
+		"chartjs-adapter-dayjs-4": "^1.0.4",
+		"dayjs": "^1.11.13"
 	}
 }

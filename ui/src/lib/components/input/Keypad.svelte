@@ -158,7 +158,7 @@
 				<tr
 					><th colspan="3">
 						{#if name != null}<span class="block">{name}:</span>{/if}
-						<span class="text-right">{valueString}{suffix ?? ''}</span>
+						<span class="text-right">{valueString}{suffix ?? ''}&nbsp;</span>
 					</th></tr
 				>
 			</thead>

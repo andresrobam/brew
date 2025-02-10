@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { Chart } from 'chart.js/auto'
 	import { getJson, putWithParams } from '$lib/api/base-api'
 	import LoadingScreen from '$lib/components/loading/LoadingScreen.svelte'
-	import { onMount } from 'svelte'
+	import { onMount, tick } from 'svelte'
 	import { error, success } from '$lib/components/toast/toast-store.svelte'
 	import ModeSelection from '$lib/components/mode-selection/ModeSelection.svelte'
 	import EditableNumber from '$lib/components/input/EditableNumber.svelte'
+	import Chart, { type ChartItem } from 'chart.js/auto'
+	import dayjs from 'dayjs'
+	import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
 	type Mode = 'off' | 'auto' | 'manual' | 'boil' | 'tuning'
 
 	type Status = {
@@ -14,9 +16,9 @@
 		temperature: number
 		setpoint: number
 		dutyCycle: number
-		chartX: string[]
+		chartX: number[]
 		chartTemperatureY: number[]
-		chartSetpointY: number[]
+		chartSetpointY: (number | null)[]
 		chartDutyCycleY: number[]
 		boilAchieved: boolean
 		autotunePeakCount?: number
@@ -24,61 +26,125 @@
 
 	let status: Status | undefined = $state()
 	let chartObject: Chart
-	let chartCanvas: HTMLCanvasElement
 
-	const jou: number[] = []
-	const x: string[] = []
+	const chartData = {
+		labels: [] as number[],
+		datasets: [
+			{
+				label: 'Temperature',
+				data: [] as { x: number; y: number }[],
+				yAxisID: 'y',
+				spanGaps: true,
+			},
+			{
+				label: 'Setpoint',
+				data: [] as { x: number; y: number }[],
+				yAxisID: 'y',
+				spanGaps: false,
+			},
+			{
+				label: 'Heater power',
+				data: [] as { x: number; y: number }[],
+				yAxisID: 'y1',
+				spanGaps: true,
+			},
+		],
+	}
 
 	function setupChart() {
-		chartObject = new Chart(chartCanvas, {
+		chartObject = new Chart(document.getElementById('chart') as ChartItem, {
 			type: 'line',
-			data: {
-				labels: x,
-				datasets: [
-					{
-						label: 'Power',
-						yAxisID: 'duty',
-						data: jou,
-					},
-					{
-						label: 'Setpoint',
-						yAxisID: 'temp',
-						data: jou,
-					},
-					{
-						label: 'Temperature',
-						yAxisID: 'temp',
-						data: jou,
-					},
-				],
-			},
+			data: chartData,
 			options: {
+				clip: false,
+				normalized: true,
+				elements: {
+					point: {
+						radius: 0,
+					},
+				},
+				events: [],
 				animation: false,
 				scales: {
-					temp: {
-						type: 'linear',
-						position: 'left',
+					x: {
+						type: 'time',
+						time: {
+							displayFormats: {
+								millisecond: 'HH:mm:ss',
+								second: 'HH:mm:ss',
+								minute: 'HH:mm',
+							},
+						},
+						ticks: {
+							source: 'labels',
+							minRotation: 0,
+							maxRotation: 0,
+							align: 'center',
+						},
+						grid: { display: false },
+						border: { display: false },
 					},
-					duty: {
+					y: {
 						type: 'linear',
+						display: true,
+						position: 'left',
+						grid: { display: false },
+						border: { display: false },
+						ticks: {
+							callback: (value) => value + '°C',
+						},
+					},
+					y1: {
+						type: 'linear',
+						display: true,
 						position: 'right',
 						min: 0,
 						max: 100,
+						grid: { display: false },
+						border: { display: false },
+						ticks: {
+							callback: (value) => value + '%',
+						},
 					},
 				},
 			},
 		})
 	}
 
+	function getSeries(data: (number | null)[], millis: number[]) {
+		const out: { x: number; y: number }[] = []
+		for (let i = 0; i < data.length; i++) {
+			if (data[i] != null) {
+				out.push({ x: millis[i], y: data[i] as number })
+			}
+		}
+		return out
+	}
+
 	const update = () => {
 		return getJson<Status>('/status')
 			.then((result) => {
 				status = result
-				if (chartObject != null) {
-					x.push('1')
-					jou.push(1)
+				tick().then(() => {
+					if (chartObject == null) {
+						setupChart()
+					}
+					chartData.labels.splice(0, chartData.labels.length)
+					chartData.labels.push(result.chartX[0])
+					if (result.chartX.length > 1) {
+						chartData.labels.push(
+							Math.floor((result.chartX[0] + result.chartX[result.chartX.length - 1]) / 2),
+						)
+						chartData.labels.push(result.chartX[result.chartX.length - 1])
+					}
+					chartData.datasets[0].data.splice(0, chartData.datasets[0].data.length)
+					chartData.datasets[0].data.push(...getSeries(result.chartTemperatureY, result.chartX))
+					chartData.datasets[1].data.splice(0, chartData.datasets[1].data.length)
+					chartData.datasets[1].data.push(...getSeries(result.chartSetpointY, result.chartX))
+					chartData.datasets[2].data.splice(0, chartData.datasets[2].data.length)
+					chartData.datasets[2].data.push(...getSeries(result.chartDutyCycleY, result.chartX))
 					chartObject.update()
-				}
+				})
 			})
 			.catch(() => {
 				error('Error getting status update!')
@@ -118,6 +184,7 @@
 	let updateInterval: number
 
 	onMount(() => {
+		update()
 		updateInterval = setInterval(update, 1000)
 		document.addEventListener('refreshData', update)
 		return () => {
@@ -125,16 +192,6 @@
 			document.removeEventListener('refreshData', update)
 		}
 	})
-
-	const chart = (node: HTMLCanvasElement) => {
-		$effect(() => {
-			chartCanvas = node
-			setupChart()
-			return () => {
-				chartObject.destroy()
-			}
-		})
-	}
 </script>
 
 {#if status == null}
@@ -144,7 +201,6 @@
 	<ModeSelection
 		modes={['off', 'auto', 'manual', 'boil']}
 		bind:active={status.mode}
-		unselect
 		errorMessage="Error changing mode!"
 		confirmationMessage={status.mode == 'tuning'
 			? 'Are you sure you want to cancel PID tuning?'
@@ -156,7 +212,7 @@
 	</ModeSelection>
 	<div class="h-50 w-2/6">{status.temperature}°C</div>
 	<div class="h-50 w-2/6">{status.dutyCycle}%</div>
-	<div class="h-50 w-2/6"><canvas use:chart></canvas></div>
+	<div class="h-50 w-3/6"><canvas id="chart"></canvas></div>
 	<div class="h-50 w-5/6">
 		{#if status.mode === 'auto'}
 			<EditableNumber
