@@ -13,7 +13,13 @@
 		suffix,
 		updateFunction,
 		afterUpdate,
-	}: EditableNumberSettings & { show: boolean } = $props()
+		confirmationMessage,
+		showSuccessMessage,
+	}: Omit<EditableNumberSettings, 'showName' | 'customClass' | 'children' | 'fillSlot'> & {
+		show: boolean
+	} = $props()
+
+	let initialized: boolean = $state(false)
 
 	let valueString: string = $state(value.toString())
 
@@ -48,6 +54,13 @@
 		return true
 	})
 
+	function initialize() {
+		if (!initialized) {
+			valueString = ''
+			initialized = true
+		}
+	}
+
 	function add(addition: string): void {
 		if (
 			(addition === '.' && valueString.includes('.')) ||
@@ -56,24 +69,34 @@
 		) {
 			return
 		}
+		initialize()
 		if (addition === '.' && valueString === '') {
 			valueString = '0'
+		}
+		if (addition !== '.' && valueString === '0') {
+			valueString = ''
 		}
 		valueString += addition
 	}
 
 	function backspace(): void {
 		if (valueString.length !== 0) {
+			initialize()
 			valueString = valueString.substring(0, valueString.length - 1)
 		}
 	}
 
 	function clear(): void {
+		initialize()
 		valueString = ''
 	}
 
 	function submit(): void {
 		if (!isValid) {
+			return
+		}
+		if (confirmationMessage != null && !confirm(confirmationMessage)) {
+			hide()
 			return
 		}
 		const originalValue: number = value
@@ -86,7 +109,9 @@
 			}
 			updateFunction()
 				.then(() => {
-					success(`Successfully updated ${valueNameInToast}!`)
+					if (showSuccessMessage) {
+						success(`Successfully updated ${valueNameInToast}!`)
+					}
 					if (afterUpdate != null) {
 						afterUpdate()
 					}
@@ -158,7 +183,9 @@
 				<tr
 					><th colspan="3">
 						{#if name != null}<span class="block">{name}:</span>{/if}
-						<span class="text-right">{valueString}{suffix ?? ''}&nbsp;</span>
+						<span class="text-right {initialized ? '' : 'text-gray-400'}"
+							>{valueString}{suffix ?? ''}&nbsp;</span
+						>
 					</th></tr
 				>
 			</thead>

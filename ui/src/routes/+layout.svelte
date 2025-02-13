@@ -9,14 +9,14 @@
 <div class="navbar">
 	<Menu />
 </div>
-<div class="content pl-8 pt-8">
+<div class="content pl-6 pr-6 pt-4">
 	{@render children()}
 </div>
 
 <style>
 	.navbar {
 		height: 100%;
-		width: 100px;
+		width: 80px;
 		position: fixed;
 		z-index: 1;
 		top: 0;
@@ -25,6 +25,6 @@
 		overflow-x: hidden;
 	}
 	.content {
-		margin-left: 100px;
+		margin-left: 80px;
 	}
 </style>

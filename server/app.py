@@ -13,6 +13,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from logging.config import dictConfig
 from datetime import datetime, timezone
 
+OK_RESPONSE = "{\"status\": \"OK\"}", 200, {'Content-Type': 'application/json'}
+BAD_REQUEST_RESPONSE = "{\"status\": \"BAD_REQUEST\"}", 400, {'Content-Type': 'application/json'}
+
 dictConfig({
     'version': 1,
     'formatters': {'default': {
@@ -32,6 +35,7 @@ dictConfig({
 mode = "off"
 pump = False
 
+has_temperature_sensor_error = True
 temperature = 0.0
 previous_temperature = temperature
 initial_setpoint = 65.0
@@ -198,7 +202,7 @@ def get_status():
         response = {}
         response["mode"] = mode
         response["pump"] = pump
-        response["temperature"] = temperature
+        response["temperature"] = None if has_temperature_sensor_error else temperature
         response["setpoint"] = setpoint
         response["dutyCycle"] = duty_cycle
         response["chartX"] = timestamps
@@ -213,35 +217,44 @@ def get_status():
 @app.route(base_url+"/setpoint", methods = ["PUT"])
 def put_setpoint():
     with lock:
+        if has_temperature_sensor_error:
+            return BAD_REQUEST_RESPONSE
         global setpoint
         global alarm_armed
+        set_mode("auto")
         setpoint = float(request.args.get("setpoint"))
         alarm_armed = True
-    return "Success", 200, {'Content-Type': 'application/json'}
+    return OK_RESPONSE
 
 @app.route(base_url+"/duty-cycle", methods = ["PUT"])
 def put_duty_cycle():
     with lock:
+        if has_temperature_sensor_error:
+            return BAD_REQUEST_RESPONSE
         global duty_cycle
-        duty_cycle = float(request.args.get("dutyCycle"))
-    return "Success", 200, {'Content-Type': 'application/json'}
+        new_duty_cycle = float(request.args.get("dutyCycle"))
+        set_mode("manual" if new_duty_cycle > 0 else "off")
+        duty_cycle = new_duty_cycle
+    return OK_RESPONSE
 
 @app.route(base_url+"/mode", methods = ["PUT"])
 def put_mode():
     with lock:
+        if has_temperature_sensor_error:
+            return BAD_REQUEST_RESPONSE
         new_tuning_mode = request.args.get("tuningMode")
         if not new_tuning_mode is None:
             global selected_tuning_mode
             selected_tuning_mode = new_tuning_mode
             app.logger.info(f"Selected tuning mode: {selected_tuning_mode}")
         set_mode(request.args.get("mode"))
-    return "Success", 200, {'Content-Type': 'application/json'}
+    return OK_RESPONSE
     
 @app.route(base_url+"/pump", methods = ["PUT"])
 def put_pump():
     with lock:
         set_pump_status(request.args.get("pump").lower() == "true")
-    return "Success", 200, {'Content-Type': 'application/json'}
+    return OK_RESPONSE
 
 @app.route(base_url+"/settings/pid", methods = ["GET"])
 def get_pid_settings():
@@ -263,7 +276,7 @@ def put_pid_settings():
         k_d = float(request.args.get("d"))
         save_settings()
         reset_pid()
-    return "Success", 200, {'Content-Type': 'application/json'}
+    return OK_RESPONSE
 
 @app.route(base_url+"/settings/boil", methods = ["GET"])
 def get_temperature_settings():
@@ -283,7 +296,7 @@ def put_temperature_settings():
         save_settings()
         if mode == "boil":
             set_mode("boil")
-    return "Success", 200, {'Content-Type': 'application/json'}
+    return OK_RESPONSE
 
 @app.route(base_url+"/settings/other", methods = ["GET"])
 def get_other_settings():
@@ -302,7 +315,7 @@ def put_other_settings():
         fan_power = float(request.args.get("fanPower"))
         set_fan_power()
         save_settings()
-    return "Success", 200, {'Content-Type': 'application/json'}
+    return OK_RESPONSE
         
 @app.route(base_url+"/messages", methods = ["GET"])
 def get_messages():
@@ -319,11 +332,8 @@ def health():
 
 def save_chart_data():
     timestamps.append(get_current_timestamp())
-    temperature_history.append(temperature)
-    if (pid is None):
-        setpoint_history.append(None)
-    else:
-        setpoint_history.append(setpoint)
+    temperature_history.append(None if has_temperature_sensor_error else temperature)
+    setpoint_history.append(None if pid is None else setpoint)
     duty_cycle_history.append(duty_cycle)
 
     if len(timestamps) > 3600:
@@ -379,7 +389,15 @@ def handle_autotune():
 
 def get_temperature():
     # TODO: temperature = read from pins
-    pass
+    # TODO: set has_temperature_sensor_error to True if reading whacky or other error, otherwise set to False
+    global has_temperature_sensor_error
+    has_temperature_sensor_error = False
+    if has_temperature_sensor_error and mode != "off":
+        message = dict(text="Temperature sensor error, turning off!", style="error")
+        app.logger.error(message["text"])
+        messages.append(message)
+        set_mode("off")
+
 
 def set_heater_pwm():
     # TODO: set duty cycle to pwm pin
@@ -403,13 +421,13 @@ def loop():
     with lock:
         global previous_temperature
         previous_temperature = temperature
-        save_chart_data()
         get_temperature()
         handle_pid()
         handle_boil()
         handle_autotune()
         set_heater_pwm()
         handle_alarm()
+        save_chart_data()
 
 load_settings()
 

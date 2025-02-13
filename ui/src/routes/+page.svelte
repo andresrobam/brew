@@ -3,21 +3,22 @@
 	import LoadingScreen from '$lib/components/loading/LoadingScreen.svelte'
 	import { onMount, tick } from 'svelte'
 	import { error, success } from '$lib/components/toast/toast-store.svelte'
-	import ModeSelection from '$lib/components/mode-selection/ModeSelection.svelte'
 	import EditableNumber from '$lib/components/input/EditableNumber.svelte'
 	import Chart, { type ChartItem } from 'chart.js/auto'
-	import dayjs from 'dayjs'
 	import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
+	import Grid from '$lib/components/grid/Grid.svelte'
+	import GridElement from '$lib/components/grid/GridElement.svelte'
+	import StatusIcon from '$lib/components/main/StatusIcon.svelte'
 	type Mode = 'off' | 'auto' | 'manual' | 'boil' | 'tuning'
 
 	type Status = {
 		mode: Mode
 		pump: boolean
-		temperature: number
+		temperature?: number
 		setpoint: number
 		dutyCycle: number
 		chartX: number[]
-		chartTemperatureY: number[]
+		chartTemperatureY: (number | null)[]
 		chartSetpointY: (number | null)[]
 		chartDutyCycleY: number[]
 		boilAchieved: boolean
@@ -26,6 +27,24 @@
 
 	let status: Status | undefined = $state()
 	let chartObject: Chart
+
+	let modeText = $derived.by(() => {
+		if (status == null) {
+			return 'Loading...'
+		}
+		switch (status.mode) {
+			case 'off':
+				return status.temperature == null ? 'Temperature sensor error, heater off' : 'Heater off'
+			case 'auto':
+				return 'Holding temperature'
+			case 'manual':
+				return 'Holding duty cycle'
+			case 'boil':
+				return status.boilAchieved ? 'Boiling' : 'Heating up to a boil'
+			case 'tuning':
+				return 'Tuning PID parameters'
+		}
+	})
 
 	const chartData = {
 		labels: [] as number[],
@@ -43,7 +62,7 @@
 				spanGaps: false,
 			},
 			{
-				label: 'Heater power',
+				label: 'Duty cycle',
 				data: [] as { x: number; y: number }[],
 				yAxisID: 'y1',
 				spanGaps: true,
@@ -169,7 +188,6 @@
 		putWithParams('/pump', { pump: newPumpStatus })
 			.then(() => {
 				if (status != null) status.pump = newPumpStatus
-				success(`Turning ${newPumpStatus ? 'on' : 'off'} the pump.`)
 				update()
 			})
 			.catch(() => {
@@ -179,6 +197,34 @@
 
 	function setMode(mode: Mode) {
 		return putWithParams('/mode', { mode })
+	}
+
+	const cancelTuningMessage = 'Are you sure you want to cancel PID tuning?'
+
+	function shouldCancelTuning() {
+		return status?.mode !== 'tuning' || confirm(cancelTuningMessage)
+	}
+
+	function changeMode(
+		mode: Mode,
+		options?: { confirmationMessage?: string; successMessage?: string; errorMessage?: string },
+	) {
+		if (
+			options?.confirmationMessage != null
+				? confirm(options.confirmationMessage)
+				: shouldCancelTuning()
+		) {
+			setMode(mode)
+				.then(() => {
+					if (options?.successMessage) {
+						success(options.successMessage)
+					}
+				})
+				.catch(() => {
+					error(options?.errorMessage ?? 'Error changing mode!')
+				})
+				.finally(update)
+		}
 	}
 
 	let updateInterval: number
@@ -198,46 +244,74 @@
 	<LoadingScreen />
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 {:else}
-	<ModeSelection
-		modes={['off', 'auto', 'manual', 'boil']}
-		bind:active={status.mode}
-		errorMessage="Error changing mode!"
-		confirmationMessage={status.mode == 'tuning'
-			? 'Are you sure you want to cancel PID tuning?'
-			: undefined}
-		updateFunction={setMode}
-		afterUpdate={update}
-	>
-		<div class="inline-block">Mode:</div>
-	</ModeSelection>
-	<div class="h-50 w-2/6">{status.temperature}°C</div>
-	<div class="h-50 w-2/6">{status.dutyCycle}%</div>
-	<div class="h-50 w-3/6"><canvas id="chart"></canvas></div>
-	<div class="h-50 w-5/6">
-		{#if status.mode === 'auto'}
+	<Grid rows={4} cols={7}>
+		<GridElement col={1} row={1} click={() => changeMode(status?.mode === 'off' ? 'auto' : 'off')}>
+			<StatusIcon on={status.mode !== 'off'} image="power" size="48px"></StatusIcon>
+		</GridElement>
+		<GridElement
+			col={1}
+			row={2}
+			click={status.mode == 'boil'
+				? undefined
+				: () => {
+						changeMode('boil')
+					}}
+		>
+			<StatusIcon on={status.mode === 'boil'} image="boil" text="Boil" size="48px"></StatusIcon>
+		</GridElement>
+		<GridElement col={1} row={3} click={togglePump}>
+			<StatusIcon on={status.pump} image="pump" text="Pump" size="48px"></StatusIcon>
+		</GridElement>
+		<GridElement col={1} row={4}
+			><div>Temperature</div>
+			<span class="text-xl">{status.temperature == null ? 'Error' : status.temperature + '°C'}</span
+			>
+		</GridElement>
+		<GridElement col={2} row={4}>
 			<EditableNumber
 				name="Setpoint"
+				showName={false}
 				suffix="°C"
 				nonZero
 				min={0}
+				max={100}
 				bind:value={status.setpoint}
 				updateFunction={setSetpoint}
 				afterUpdate={update}
-			/>
-		{:else if status.mode === 'manual'}
+				confirmationMessage={status?.mode === 'tuning' ? cancelTuningMessage : undefined}
+				showSuccessMessage={false}
+			>
+				<div>Setpoint</div>
+				<span class="text-xl {status.mode != 'auto' ? 'text-neutral-400' : ''}"
+					>{status.setpoint}°C</span
+				>
+			</EditableNumber>
+		</GridElement>
+		<GridElement col={3} row={4}>
 			<EditableNumber
-				name="Power"
+				name="Duty cycle"
+				showName={false}
 				suffix="%"
-				nonZero
 				min={0}
 				max={100}
 				bind:value={status.dutyCycle}
 				updateFunction={setDutyCycle}
 				afterUpdate={update}
-			/>
-		{/if}
-	</div>
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="h-50 w-2/6" onclick={togglePump}>Pump: {status.pump}</div>
+				confirmationMessage={status?.mode === 'tuning' ? cancelTuningMessage : undefined}
+				showSuccessMessage={false}
+			>
+				<div>Duty cycle</div>
+				<span class="text-xl {status.mode != 'manual' ? 'text-neutral-400' : ''}"
+					>{status.dutyCycle}%</span
+				>
+			</EditableNumber>
+		</GridElement>
+		<GridElement col={4} endCol={7} row={4}><div class="text-2xl">{modeText}</div></GridElement>
+		<GridElement col={2} endCol={7} row={1} endRow={3}
+			><div class="pl-3 pr-3"><canvas id="chart"></canvas></div></GridElement
+		>
+	</Grid>
 {/if}
+
+<style>
+</style>
