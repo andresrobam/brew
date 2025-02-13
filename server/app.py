@@ -45,6 +45,7 @@ boil_threshold = 99.7
 boil_power = 50.0
 previous_duty_cycle = 0.0
 duty_cycle = 0.0
+fan_rpm = 0
 
 timestamps = []
 temperature_history = []
@@ -348,6 +349,7 @@ def get_info():
         response["logs"] = logs
         response["cpuTemperature"] = get_cpu_temperature()
         response["startMillis"] = start_millis
+        response["fanRpm"] = fan_rpm # TODO update fan rpm via interrupt
         return response, 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/health", methods = ["GET"])
