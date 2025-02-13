@@ -62,6 +62,7 @@ pid = None
 tuner = None
 selected_tuning_mode = None
 messages = []
+logs = []
 
 sample_time = 1.0
 
@@ -70,6 +71,19 @@ base_url = "/api"
 CORS(app)
 
 lock = threading.Lock()
+
+def add_log(message):
+    logs.append(dict(millis=get_current_timestamp(), text=message))
+    if len(logs) > 50:
+        logs.pop(0)
+
+def log_info(message):
+    app.logger.info(message)
+    add_log(message)
+
+def log_error(message):
+    app.logger.error(message)
+    add_log(message)
 
 def load_settings():
     global initial_setpoint
@@ -91,10 +105,10 @@ def load_settings():
             k_p = settings["k_p"]
             k_i = settings["k_i"]
             k_d = settings["k_d"]
-        app.logger.info("Initialized settings from config.json!")
+        log_info("Initialized settings from config.json!")
     except Exception:
-        app.logger.error("Failed initializing setting from config.json, using defaults!")
-        app.logger.error(traceback.format_exc())
+        log_error("Failed initializing setting from config.json, using defaults!")
+        log_error(traceback.format_exc())
         pass
     set_fan_power()
 
@@ -109,7 +123,7 @@ def save_settings():
     settings["k_d"] = k_d
     with open('config/config.json', 'w+') as file:
         file.write(json.dumps(settings))
-    app.logger.info("Wrote to config.json!")
+    log_info("Wrote to config.json!")
 
 def initialize_pid():
     global pid
@@ -119,7 +133,7 @@ def reset_pid():
     global pid
     if pid is None:
         return
-    app.logger.info("Resetting PID")
+    log_info("Resetting PID")
     initialize_pid()
 
 def get_current_timestamp():
@@ -129,23 +143,23 @@ def set_pump_status(status):
     global pump
     pump = status
     if status: 
-        app.logger.info("Pump turned ON")
+        log_info("Pump turned ON")
     else:
-        app.logger.info("Pump turned OFF")
+        log_info("Pump turned OFF")
     # TODO: set pump relay pin status
 
 def set_pid_status(status):
     global pid
     if status:
         initialize_pid()
-        app.logger.info("PID turned ON")
+        log_info("PID turned ON")
     else:
         pid = None
-        app.logger.info("PID turned OFF")
+        log_info("PID turned OFF")
 
 def buzz():
     # TODO: trigger buzzer via PWM somehow
-    app.logger.info("BUZZ")
+    log_info("BUZZ")
 
 def handle_boil():
     global duty_cycle
@@ -161,7 +175,7 @@ def handle_boil():
         duty_cycle = boil_power
 
 def set_mode(new_mode):
-    app.logger.info(f"Mode set to: {new_mode}")
+    log_info(f"Mode set to: {new_mode}")
     global mode
     global duty_cycle
     global alarm_armed
@@ -246,7 +260,7 @@ def put_mode():
         if not new_tuning_mode is None:
             global selected_tuning_mode
             selected_tuning_mode = new_tuning_mode
-            app.logger.info(f"Selected tuning mode: {selected_tuning_mode}")
+            log_info(f"Selected tuning mode: {selected_tuning_mode}")
         set_mode(request.args.get("mode"))
     return OK_RESPONSE
     
@@ -325,6 +339,16 @@ def get_messages():
         response += messages
         messages = []
         return response, 200, {'Content-Type': 'application/json'}
+        
+@app.route(base_url+"/info", methods = ["GET"])
+def get_info():
+    with lock:
+        global messages        
+        response = {}
+        response["logs"] = logs
+        response["cpuTemperature"] = get_cpu_temperature()
+        response["startMillis"] = start_millis
+        return response, 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/health", methods = ["GET"])
 def health():
@@ -369,10 +393,10 @@ def handle_autotune():
             
             for tuning_mode in tuner.tuning_rules:
                 params = tuner.get_pid_parameters(tuning_mode)
-                app.logger.info("Tuning mode: {tuning_mode}")
-                app.logger.info("Kp: {params.Kp}")
-                app.logger.info("Ki: {params.Ki}")
-                app.logger.info("Kd: {params.Kd}")
+                log_info("Tuning mode: {tuning_mode}")
+                log_info("Kp: {params.Kp}")
+                log_info("Ki: {params.Ki}")
+                log_info("Kd: {params.Kd}")
 
                 if tuning_mode == selected_tuning_mode:
                     k_p = params.Kp
@@ -384,8 +408,12 @@ def handle_autotune():
         if tuner.state == PIDAutotune.STATE_FAILED:
             message = dict(text="Autotune failed", style="error")
         if not message is None:
-            app.logger.info(message["text"])
+            log_info(message["text"])
             messages.append(message)
+
+def get_cpu_temperature():
+    # TODO: get number from /sys/class/thermal/thermal_zone0/temp and divide by 1000
+    return 0
 
 def get_temperature():
     # TODO: temperature = read from pins
@@ -394,7 +422,7 @@ def get_temperature():
     has_temperature_sensor_error = False
     if has_temperature_sensor_error and mode != "off":
         message = dict(text="Temperature sensor error, turning off!", style="error")
-        app.logger.error(message["text"])
+        log_error(message["text"])
         messages.append(message)
         set_mode("off")
 
@@ -405,11 +433,11 @@ def set_heater_pwm():
     if previous_duty_cycle == duty_cycle:
         return
     previous_duty_cycle = duty_cycle
-    app.logger.info(f"Setting heater duty cycle to {duty_cycle}")
+    log_info(f"Setting heater duty cycle to {duty_cycle}")
 
 def set_fan_power():
     # TODO: set duty cycle to fan pin
-    app.logger.info(f"Setting fan power to {fan_power}")
+    log_info(f"Setting fan power to {fan_power}")
 
 def handle_alarm():
     global alarm_armed
@@ -430,6 +458,8 @@ def loop():
         save_chart_data()
 
 load_settings()
+
+start_millis = get_current_timestamp()
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=loop, trigger="interval", seconds=1)

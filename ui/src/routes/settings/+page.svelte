@@ -138,7 +138,7 @@
 		confirmationMessage={'Are you sure you want to start PID tuning with mode "{mode}"?'}
 		updateFunction={startTuning}
 	>
-		<div class="inline-block text-3xl">Tuning:</div>
+		<div class="mb-4 text-3xl font-bold">PID tuning</div>
 	</ModeSelection>
 	<div class="mb-4 mt-4 text-3xl font-bold">Boil settings</div>
 	<EditableNumber
