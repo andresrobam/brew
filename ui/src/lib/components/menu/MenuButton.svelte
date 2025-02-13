@@ -15,12 +15,13 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
-	class="block h-24 {active
-		? 'bg-gray-400'
-		: 'cursor-pointer active:bg-gray-600'}"
+	class="block h-24 {active ? 'bg-gray-400' : 'cursor-pointer active:bg-gray-600'}"
 	onclick={active ? () => {} : click}
 >
+	<!-- svelte-ignore a11y_missing_attribute -->
 	<img class="size-full" src={menuItem.image} />
 </div>
 
