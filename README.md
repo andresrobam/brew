@@ -41,24 +41,28 @@ sudo modprobe w1-therm
 
 ## Installation
 
-Configure DS18B20 if not alread configured (see previous section).\
-Log in to your Pi and navigate to the directory you want to save the application to.\
-Download the `docker-compose.yml` file:
+Configure DS18B20 if not alread configured (see previous section).
 
+Install gcc:
 ```
-wget https://raw.githubusercontent.com/andresrobam/brew/refs/heads/master/docker-compose.yml
-```
-
-Create a sub-directory for the configuration:
-
-```
-mkdir -p server/config
+apt install gcc
 ```
 
-Start the application:
+Navigate to the folder you want to install this application to and clone the repository:
+```
+git clone https://github.com/andresrobam/brew.git
+```
 
+Start the UI:
 ```
 docker compose up -d
+```
+
+Navigate to the backend directory, install requirements and start the backend:
+```
+cd server
+pip install -r requirements.txt
+python app.py
 ```
 
 ## Local build
