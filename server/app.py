@@ -176,7 +176,7 @@ def set_pid_status(status):
         log_info("PID turned OFF")
 
 async def buzzer_off():
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.5)
     GPIO.output(buzzer_pin, GPIO.LOW)
 
 def buzz():
