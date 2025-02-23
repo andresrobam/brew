@@ -9,6 +9,7 @@ import threading
 import netifaces
 import asyncio
 
+from rpi_hardware_pwm import HardwarePWM
 from math import floor
 from flask import Flask, request
 from flask_cors import CORS
@@ -41,12 +42,16 @@ GPIO.setmode(GPIO.BOARD)
 
 pump_pin = 13
 fan_tach_pin = 37
-fan_pwm_pin = 32
-heater_pin = 33
 buzzer_pin = 18
 
 GPIO.setup(pump_pin, GPIO.OUT)
 GPIO.setup(buzzer_pin, GPIO.OUT)
+
+fan_pwm = HardwarePWM(pwm_channel=0, hz=20000, chip=0)
+fan_pwm.start(100)
+
+heater_pwm = HardwarePWM(pwm_channel=1, hz=50, chip=0)
+heater_pwm.start(0)
 
 mode = "off"
 pump = False
@@ -485,10 +490,11 @@ def set_heater_pwm():
         return
     previous_duty_cycle = duty_cycle
     log_info(f"Setting heater duty cycle to {duty_cycle}")
+    heater_pwm.change_duty_cycle(duty_cycle)
 
 def set_fan_power():
-    # TODO: set duty cycle to fan pin
     log_info(f"Setting fan power to {fan_power}")
+    fan_pwm.change_duty_cycle(fan_power)
 
 def handle_alarm():
     global alarm_armed
