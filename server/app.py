@@ -51,6 +51,7 @@ GPIO.setup(fan_tach_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 tach_counter = 0
 
 def increment_tach_counter():
+    print('jou')
     global tach_counter
     tach_counter += 1
 
