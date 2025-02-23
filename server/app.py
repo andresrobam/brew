@@ -46,6 +46,15 @@ buzzer_pin = 18
 
 GPIO.setup(pump_pin, GPIO.OUT)
 GPIO.setup(buzzer_pin, GPIO.OUT)
+GPIO.setup(fan_tach_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+tach_counter = 0
+
+def increment_tach_counter():
+    global tach_counter
+    tach_counter += 1
+
+GPIO.add_event_detect(fan_tach_pin, GPIO.FALLING, callback=increment_tach_counter, bouncetime=100)
 
 fan_pwm = HardwarePWM(pwm_channel=0, hz=20000, chip=0)
 fan_pwm.start(100)
@@ -66,6 +75,7 @@ boil_threshold = 99.7
 boil_power = 50.0
 previous_duty_cycle = 0.0
 duty_cycle = 0.0
+last_fan_check = 0
 fan_rpm = 0
 
 timestamps = []
@@ -238,6 +248,20 @@ def set_mode(new_mode):
         set_pid_status(False)
         tuner = PIDAutotune(sample_time, initial_setpoint)
 
+def calculate_fan_rpm():
+    global last_fan_check
+
+    if last_fan_check == 0:
+        last_fan_check = get_current_timestamp()
+        return
+    
+    global fan_rpm
+    global tach_counter
+    current_timestamp = get_current_timestamp()
+    fan_rpm = tach_counter / ((current_timestamp - last_fan_check)/60000)
+    tach_counter = 0
+    last_fan_check = current_timestamp
+
 @app.route(base_url+"/status", methods = ["GET"])
 def get_status():
     with lock:
@@ -381,7 +405,7 @@ def get_info():
         if not ip is None:
             response["ip"] = ip
         response["startMillis"] = start_millis
-        response["fanRpm"] = fan_rpm # TODO update fan rpm via interrupt
+        response["fanRpm"] = fan_rpm
         return response, 200, {'Content-Type': 'application/json'}
 
 @app.route(base_url+"/health", methods = ["GET"])
@@ -511,6 +535,7 @@ def loop():
         handle_autotune()
         set_heater_pwm()
         handle_alarm()
+        calculate_fan_rpm()
         save_chart_data()
 
 load_settings()
