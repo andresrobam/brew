@@ -46,7 +46,7 @@ buzzer_pin = 18
 
 GPIO.setup(pump_pin, GPIO.OUT)
 GPIO.setup(buzzer_pin, GPIO.OUT)
-GPIO.setup(fan_tach_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(fan_tach_pin, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
 
 tach_counter = 0
 
