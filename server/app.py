@@ -484,7 +484,6 @@ def get_temperature():
 
 
 def set_heater_pwm():
-    # TODO: set duty cycle to pwm pin
     global previous_duty_cycle
     if previous_duty_cycle == duty_cycle:
         return
