@@ -1,12 +1,14 @@
 import glob
-from math import floor
+import RPi.GPIO as GPIO
 import re
 import traceback
 import json
 import datetime
 import atexit
 import threading
+import netifaces
 
+from math import floor
 from flask import Flask, request
 from flask_cors import CORS
 from pid import PID
@@ -33,6 +35,12 @@ dictConfig({
         'handlers': ['wsgi']
     }
 })
+
+GPIO.setmode(GPIO.BOARD)
+
+pump_pin = 13
+
+GPIO.setup(pump_pin, GPIO.OUT)
 
 mode = "off"
 pump = False
@@ -147,9 +155,10 @@ def set_pump_status(status):
     pump = status
     if status: 
         log_info("Pump turned ON")
+        GPIO.output(pump_pin, GPIO.HIGH)
     else:
         log_info("Pump turned OFF")
-    # TODO: set pump relay pin status
+        GPIO.output(pump_pin, GPIO.LOW)
 
 def set_pid_status(status):
     global pid
@@ -352,6 +361,9 @@ def get_info():
         cpuTemperature = get_cpu_temperature()
         if not cpuTemperature is None:
             response["cpuTemperature"] = cpuTemperature
+        ip = get_ip()
+        if not ip is None:
+            response["ip"] = ip
         response["startMillis"] = start_millis
         response["fanRpm"] = fan_rpm # TODO update fan rpm via interrupt
         return response, 200, {'Content-Type': 'application/json'}
@@ -423,6 +435,12 @@ def get_cpu_temperature():
             return float(file.read().strip())/1000
     except Exception:
         return None
+
+def get_ip():
+    try:
+        return netifaces.ifaddresses('wlan0')[2][0]['addr']
+    except Exception:
+        return None:
 
 def get_temperature():
     global has_temperature_sensor_error

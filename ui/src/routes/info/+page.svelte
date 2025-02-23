@@ -14,6 +14,7 @@
 		cpuTemperature?: number
 		startMillis: number
 		fanRpm: number
+		ip?: string
 	}
 	let info: Info | undefined = $state()
 
@@ -43,8 +44,9 @@
 {#if info == null}
 	<LoadingScreen />
 {:else}
+	<div class="text-2xl">IP address: {info.ip == null ? 'Error' : info.ip}</div>
 	<div class="text-2xl">
-	CPU temperature: {info.cpuTemperature == null ? 'Error' : info.cpuTemperature + '°C'}
+		CPU temperature: {info.cpuTemperature == null ? 'Error' : info.cpuTemperature + '°C'}
 	</div>
 	<div class="text-2xl">Fan speed: {info.fanRpm} rpm</div>
 	<div class="text-2xl">
