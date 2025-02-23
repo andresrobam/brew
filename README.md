@@ -61,8 +61,8 @@ docker compose up -d
 Navigate to the backend directory, install requirements and start the backend:
 ```
 cd server
-pip install -r requirements.txt
-python app.py
+pip3 install -r requirements.txt
+python3 app.py
 ```
 
 ## Local build

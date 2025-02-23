@@ -7,6 +7,7 @@ import datetime
 import atexit
 import threading
 import netifaces
+import asyncio
 
 from math import floor
 from flask import Flask, request
@@ -39,8 +40,13 @@ dictConfig({
 GPIO.setmode(GPIO.BOARD)
 
 pump_pin = 13
+fan_tach_pin = 37
+fan_pwm_pin = 32
+heater_pin = 33
+buzzer_pin = 18
 
 GPIO.setup(pump_pin, GPIO.OUT)
+GPIO.setup(buzzer_pin, GPIO.OUT)
 
 mode = "off"
 pump = False
@@ -170,8 +176,11 @@ def set_pid_status(status):
         log_info("PID turned OFF")
 
 def buzz():
-    # TODO: trigger buzzer via PWM somehow
     log_info("BUZZ")
+    GPIO.output(buzzer_pin, GPIO.HIGH)
+    asyncio.sleep(0.3)
+    GPIO.output(buzzer_pin, GPIO.LOW)
+
 
 def handle_boil():
     global duty_cycle
