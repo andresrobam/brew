@@ -175,12 +175,14 @@ def set_pid_status(status):
         pid = None
         log_info("PID turned OFF")
 
-async def buzz():
-    log_info("BUZZ")
-    GPIO.output(buzzer_pin, GPIO.HIGH)
+async def buzzer_off():
     await asyncio.sleep(0.3)
     GPIO.output(buzzer_pin, GPIO.LOW)
 
+def buzz():
+    log_info("BUZZ")
+    GPIO.output(buzzer_pin, GPIO.HIGH)
+    asyncio.run(buzzer_off())
 
 def handle_boil():
     global duty_cycle
