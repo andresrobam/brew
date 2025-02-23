@@ -11,7 +11,7 @@
 	}
 	type Info = {
 		logs: Log[]
-		cpuTemperature: number
+		cpuTemperature?: number
 		startMillis: number
 		fanRpm: number
 	}
@@ -43,7 +43,9 @@
 {#if info == null}
 	<LoadingScreen />
 {:else}
-	<div class="text-2xl">CPU temperature: {info.cpuTemperature}°C</div>
+	<div class="text-2xl">
+	CPU temperature: {info.cpuTemperature == null ? 'Error' : info.cpuTemperature + '°C'}
+	</div>
 	<div class="text-2xl">Fan speed: {info.fanRpm} rpm</div>
 	<div class="text-2xl">
 		Started on: {dayjs(info.startMillis).format('YYYY-MM-DD HH:mm:ss.SSS')}

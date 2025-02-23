@@ -1,4 +1,6 @@
+import glob
 from math import floor
+import re
 import traceback
 import json
 import datetime
@@ -347,7 +349,9 @@ def get_info():
         global messages        
         response = {}
         response["logs"] = logs
-        response["cpuTemperature"] = get_cpu_temperature()
+        cpuTemperature = get_cpu_temperature()
+        if not cpuTemperature is None:
+            response["cpuTemperature"] = cpuTemperature
         response["startMillis"] = start_millis
         response["fanRpm"] = fan_rpm # TODO update fan rpm via interrupt
         return response, 200, {'Content-Type': 'application/json'}
@@ -414,14 +418,30 @@ def handle_autotune():
             messages.append(message)
 
 def get_cpu_temperature():
-    # TODO: get number from /sys/class/thermal/thermal_zone0/temp and divide by 1000
-    return 0
+    try:
+        with open('/sys/class/thermal/thermal_zone0/temp') as file:
+            return float(file.read().strip())/1000
+    except Exception:
+        return None
 
 def get_temperature():
-    # TODO: temperature = read from pins
-    # TODO: set has_temperature_sensor_error to True if reading whacky or other error, otherwise set to False
     global has_temperature_sensor_error
-    has_temperature_sensor_error = False
+    global temperature
+
+    try:                
+        base_dir = '/sys/bus/w1/devices/'
+        device_folder = glob.glob(base_dir + '28*')[0]
+        device_file = device_folder + '/w1_slave'
+        with open(device_file, 'r') as file:
+            result = re.search('.*t=(\d{5}).*', file.read())
+            if result is None:
+                has_temperature_sensor_error = True
+            else:
+                temperature = float(result.group(1))/1000
+                has_temperature_sensor_error = False
+    except Exception:
+        has_temperature_sensor_error = True
+
     if has_temperature_sensor_error and mode != "off":
         message = dict(text="Temperature sensor error, turning off!", style="error")
         log_error(message["text"])
