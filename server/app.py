@@ -440,7 +440,7 @@ def get_ip():
     try:
         return netifaces.ifaddresses('wlan0')[2][0]['addr']
     except Exception:
-        return None:
+        return None
 
 def get_temperature():
     global has_temperature_sensor_error
