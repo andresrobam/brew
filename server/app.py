@@ -117,7 +117,7 @@ def load_settings():
     global k_i
     global k_d
     try:
-        with open('config/config.json', 'r') as file:
+        with open('config.json', 'r') as file:
             settings = json.load(file)    
             initial_setpoint = settings["initial_setpoint"]
             fan_power = settings["fan_power"]
@@ -143,7 +143,7 @@ def save_settings():
     settings["k_p"] = k_p
     settings["k_i"] = k_i
     settings["k_d"] = k_d
-    with open('config/config.json', 'w+') as file:
+    with open('config.json', 'w+') as file:
         file.write(json.dumps(settings))
     log_info("Wrote to config.json!")
 

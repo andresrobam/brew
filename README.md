@@ -18,7 +18,13 @@ PID logic copied from [hirschmann/pid-autotune](https://github.com/hirschmann/pi
 
 More details about the connections (necessary components and wiring) can be found in the `electronics` sub-directory (open with KiCad).
 
-## Configuring temperature sensor
+## Configuring temperature sensor and PWM modules
+
+Add hardwar PWM to boot configuration:
+
+```
+sudo echo -e "\ndtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4\n" >> /boot/config.txt
+```
 
 Add 1-Wire to boot configuration:
 
