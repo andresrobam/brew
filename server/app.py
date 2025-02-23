@@ -46,12 +46,11 @@ buzzer_pin = 18
 
 GPIO.setup(pump_pin, GPIO.OUT)
 GPIO.setup(buzzer_pin, GPIO.OUT)
-GPIO.setup(fan_tach_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(fan_tach_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 tach_counter = 0
 
 def increment_tach_counter():
-    print('jou')
     global tach_counter
     tach_counter += 1
 
