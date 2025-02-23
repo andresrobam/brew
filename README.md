@@ -7,14 +7,19 @@ Runs on http://localhost:80. Port can be changed in the `docker-compose` file.
 
 PID logic copied from [hirschmann/pid-autotune](https://github.com/hirschmann/pid-autotune).
 
+## Issues
+
+Fan tachometer signal reading does not work as intended and is hidden in the UI. Will be fixed in a future revision. \
+Transistor footprints on the PCB have their pads very close together which makes soldering difficult. Will be changed for wider footprint in a future revision.
+
 ## GPIO pins
 
-- GPIO04 - Data channel of a DS18B20 temperature sensor
-- GPIO12 - Fan PWM signal
-- GPIO13 - PWM signal to drive the heater through a solid state relay
-- GPIO24 - Positive voltage for a buzzer
-- GPIO26 - Fan tachometer input
-- GPIO27 - Pump relay signal
+- GPIO04 (board 7) - Data channel of a DS18B20 temperature sensor (input)
+- GPIO12 (board 32) - Fan PWM (output)
+- GPIO13 (board 33) - PWM signal to drive the heater through a solid state relay (output)
+- GPIO24 (board 18) - Buzzer (output)
+- GPIO26 (board 37) - Fan tachometer signal (input)
+- GPIO27 (board 13) - Pump relay control (output)
 
 More details about the connections (necessary components and wiring) can be found in the `electronics` sub-directory (open with KiCad).
 
