@@ -46,7 +46,7 @@ buzzer_pin = 18
 
 GPIO.setup(pump_pin, GPIO.OUT)
 GPIO.setup(buzzer_pin, GPIO.OUT)
-GPIO.setup(fan_tach_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(fan_tach_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 tach_counter = 0
 
@@ -54,7 +54,7 @@ def increment_tach_counter():
     global tach_counter
     tach_counter += 1
 
-GPIO.add_event_detect(fan_tach_pin, GPIO.FALLING, callback=increment_tach_counter)
+GPIO.add_event_detect(fan_tach_pin, GPIO.RISING, callback=increment_tach_counter)
 
 fan_pwm = HardwarePWM(pwm_channel=0, hz=20000, chip=0)
 fan_pwm.start(100)
