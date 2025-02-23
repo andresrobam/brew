@@ -2,6 +2,7 @@ services:
   ui:
     image: ghcr.io/andresrobam/brew/ui:latest
     container_name: ui
+    network_mode: host
     ports:
       - "80:80"
     restart: unless-stopped

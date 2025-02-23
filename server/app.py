@@ -507,7 +507,5 @@ scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())
 
-app.config["APPLICATION_ROOT"] = "/api"
-
 if __name__ == '__main__':
     app.run(threaded = True, host="0.0.0.0")
