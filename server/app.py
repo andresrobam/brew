@@ -93,6 +93,7 @@ boil_achieved = False
 pid = None
 tuner = None
 selected_tuning_mode = None
+peak_count = 0
 messages = []
 logs = []
 
@@ -245,7 +246,9 @@ def set_mode(new_mode):
         alarm_armed = False
         duty_cycle = 0
         set_pid_status(False)
-        tuner = PIDAutotune(sample_time, initial_setpoint, 50)
+        global peak_count
+        peak_count = 0
+        tuner = PIDAutotune(sample_time, initial_setpoint, 100)
 
 def calculate_fan_rpm():
     global last_fan_check
@@ -436,6 +439,11 @@ def handle_autotune():
     global duty_cycle
     tuner.run(temperature)
     duty_cycle = tuner.output
+    global peak_count
+    new_peak_count = tuner.peak_count
+    if new_peak_count != peak_count:
+        peak_count = new_peak_count
+        log_info(f"Autotune peak count: {peak_count}")
     if tuner.state == PIDAutotune.STATE_SUCCEEDED or tuner.state == PIDAutotune.STATE_FAILED or tuner.state == PIDAutotune.STATE_OFF:
         buzz()
         message = None
