@@ -245,7 +245,7 @@ def set_mode(new_mode):
         alarm_armed = False
         duty_cycle = 0
         set_pid_status(False)
-        tuner = PIDAutotune(sample_time, initial_setpoint)
+        tuner = PIDAutotune(sample_time, initial_setpoint, 50)
 
 def calculate_fan_rpm():
     global last_fan_check
