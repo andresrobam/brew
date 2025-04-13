@@ -438,7 +438,6 @@ def handle_autotune():
     duty_cycle = tuner.output
     if tuner.state == PIDAutotune.STATE_SUCCEEDED or tuner.state == PIDAutotune.STATE_FAILED or tuner.state == PIDAutotune.STATE_OFF:
         buzz()
-        set_mode("off")
         message = None
         if tuner.state == PIDAutotune.STATE_SUCCEEDED:
             message = dict(text="Autotune successful", style="success")
@@ -462,6 +461,7 @@ def handle_autotune():
             save_settings()
         elif tuner.state == PIDAutotune.STATE_FAILED:
             message = dict(text="Autotune failed", style="error")
+        set_mode("off")
         if not message is None:
             log_info(message["text"])
             messages.append(message)
