@@ -219,7 +219,6 @@ def set_mode(new_mode):
     global alarm_armed
     global boil_achieved
     global tuner
-    global selected_tuning_mode
     mode = new_mode
     if mode == "off":
         set_pid_status(False)
@@ -446,8 +445,6 @@ def handle_autotune():
             global k_p
             global k_i
             global k_d
-
-            params = tuner.get_pid_parameters(selected_tuning_mode)
             
             for tuning_mode in tuner.tuning_rules:
                 params = tuner.get_pid_parameters(tuning_mode)
@@ -463,7 +460,7 @@ def handle_autotune():
 
             tuner = None
             save_settings()
-        if tuner.state == PIDAutotune.STATE_FAILED:
+        elif tuner.state == PIDAutotune.STATE_FAILED:
             message = dict(text="Autotune failed", style="error")
         if not message is None:
             log_info(message["text"])
