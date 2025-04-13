@@ -25,7 +25,7 @@ More details about the connections (necessary components and wiring) can be foun
 
 ## Configuring temperature sensor and PWM modules
 
-Add hardwar PWM to boot configuration:
+Add hardware PWM to boot configuration:
 
 ```
 sudo echo -e "\ndtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4\n" >> /boot/config.txt
