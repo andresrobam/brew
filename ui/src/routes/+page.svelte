@@ -110,7 +110,7 @@
 						grid: { display: false },
 						border: { display: false },
 						ticks: {
-							callback: (value) => value + '°C',
+							callback: (value) => (Math.round(value * 100) / 100).toFixed(2) + '°C',
 						},
 					},
 					y1: {
