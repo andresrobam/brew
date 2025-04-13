@@ -447,10 +447,10 @@ def handle_autotune():
             
             for tuning_mode in tuner.tuning_rules:
                 params = tuner.get_pid_parameters(tuning_mode)
-                log_info("Tuning mode: {tuning_mode}")
-                log_info("Kp: {params.Kp}")
-                log_info("Ki: {params.Ki}")
-                log_info("Kd: {params.Kd}")
+                log_info(F"Tuning mode: {tuning_mode}")
+                log_info(F"Kp: {params.Kp}")
+                log_info(F"Ki: {params.Ki}")
+                log_info(F"Kd: {params.Kd}")
 
                 if tuning_mode == selected_tuning_mode:
                     k_p = params.Kp
