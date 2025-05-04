@@ -54,7 +54,7 @@
 	</div>
 	<div class="mb-2 mt-6 text-2xl">Logs:</div>
 	<div class="mb-3">
-		{#each info.logs as log}
+		{#each [...info.logs].reverse() as log}
 			<p>{dayjs(log.millis).format('HH:mm:ss.SSS')}: {log.text}</p>
 		{/each}
 	</div>
