@@ -70,6 +70,10 @@
 		],
 	}
 
+	function formatTemp(value: number) {
+		return (Math.round(value * 100) / 100).toFixed(2) + '°C'
+	}
+
 	function setupChart() {
 		chartObject = new Chart(document.getElementById('chart') as ChartItem, {
 			type: 'line',
@@ -110,7 +114,7 @@
 						grid: { display: false },
 						border: { display: false },
 						ticks: {
-							callback: (value) => (Math.round(value * 100) / 100).toFixed(2) + '°C',
+							callback: (value) => formatTemp(value as number),
 						},
 					},
 					y1: {
@@ -262,9 +266,10 @@
 		<GridElement col={1} row={3} click={togglePump}>
 			<StatusIcon on={status.pump} image="pump" text="Pump" size="48px"></StatusIcon>
 		</GridElement>
-		<GridElement col={1} row={4}
-			><div>Temperature</div>
-			<span class="text-xl">{status.temperature == null ? 'Error' : status.temperature + '°C'}</span
+		<GridElement col={1} row={4}>
+			<div>Temperature</div>
+			<span class="text-xl"
+				>{status.temperature == null ? 'Error' : formatTemp(status.temperature)}</span
 			>
 		</GridElement>
 		<GridElement col={2} row={4}>
@@ -302,7 +307,7 @@
 			>
 				<div>Duty cycle</div>
 				<span class="text-xl {status.mode != 'manual' ? 'text-neutral-400' : ''}"
-					>{status.dutyCycle}%</span
+					>{Math.round(status.dutyCycle)}%</span
 				>
 			</EditableNumber>
 		</GridElement>
