@@ -3,6 +3,7 @@ import RPi.GPIO as GPIO
 import re
 import traceback
 import json
+import time
 import datetime
 import atexit
 import threading
@@ -66,6 +67,7 @@ mode = "off"
 pump = False
 
 has_temperature_sensor_error = True
+previous_time = 0.0
 temperature = 0.0
 previous_temperature = temperature
 initial_setpoint = 65.0
@@ -499,6 +501,7 @@ def get_temperature():
             result = re.search('.*t=(-?\d+).*', file.read())
             if result is None:
                 has_temperature_sensor_error = True
+
             else:
                 temperature = float(result.group(1))/1000
                 has_temperature_sensor_error = False
@@ -530,10 +533,26 @@ def handle_alarm():
         buzz()
         alarm_armed = False
 
+def handle_time():
+    global previous_time
+    global timestamps
+    global temperature_history
+    global setpoint_history
+    global duty_cycle_history
+    new_time = time.time()
+    if new_time < previous_time or new_time - previous_time > 5:
+        log_info("Time jump detected, emptying charts")
+        timestamps = []
+        temperature_history = []
+        setpoint_history = []
+        duty_cycle_history = []
+    previous_time = new_time
+
 def loop():
     with lock:
         global previous_temperature
         previous_temperature = temperature
+        handle_time()
         get_temperature()
         handle_pid()
         handle_boil()
@@ -546,6 +565,7 @@ def loop():
 load_settings()
 
 start_millis = get_current_timestamp()
+previous_time = time.time()
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=loop, trigger="interval", seconds=1)
