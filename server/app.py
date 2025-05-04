@@ -491,12 +491,12 @@ def get_temperature():
     global has_temperature_sensor_error
     global temperature
 
-    try:                
+    try:
         base_dir = '/sys/bus/w1/devices/'
         device_folder = glob.glob(base_dir + '28*')[0]
         device_file = device_folder + '/w1_slave'
         with open(device_file, 'r') as file:
-            result = re.search('.*t=(\d{5}).*', file.read())
+            result = re.search('.*t=(-?\d+).*', file.read())
             if result is None:
                 has_temperature_sensor_error = True
             else:
